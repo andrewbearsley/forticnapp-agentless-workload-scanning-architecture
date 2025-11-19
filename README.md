@@ -25,8 +25,11 @@ FortiCNAPP Agentless Workload Scanning provides vulnerability scanning for cloud
 6. Scan results are stored in Storage Account
 7. Lacework retrieves scan results via Service Principal
 
-## Recommended Deployment Method
-Terraform is recommended for deployment to AWS and Azure since it is a common deployment technique across both cloud providers. Additionally, the AWS terraform module is flexible to allow for existing networking resources (VPC, subnets, security groups) to be used.
+## Deployment Methods
+
+For deployment to AWS, both CloudFormation and Terraform are supported. Terraform is typically recommended since the terraform module is flexible to allow for existing networking resources (VPC, subnets, security groups) to be reused in the scanning account.
+
+For deployment to Azure, Terraform is supported.
 
 ## AWS Deployment Details
 
