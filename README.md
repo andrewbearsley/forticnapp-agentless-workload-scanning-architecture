@@ -111,8 +111,8 @@ The Terraform module provisions the following AWS resources:
 The Terraform module supports using existing VPC, subnets, and security groups instead of creating new ones. This applies to both **single account** and **organization deployments**.
 
 **For Organization Deployments:**
-- VPC/networking configuration is **only needed in the scanning account** - specifically in the regional modules (`regional = true`)
-- Monitored accounts and management accounts **do not require** VPC/networking configuration - they only need IAM snapshot roles (`snapshot_role = true`)
+- VPC/networking configuration is **only needed in the scanning account**
+- Monitored accounts and management accounts **do not require** VPC/networking configuration
 
 To use existing resources in the scanning account's regional modules, set the following module inputs:
 - `use_existing_vpc = true` and provide `vpc_id` - The existing VPC must have an Internet Gateway attached (or set `use_internet_gateway = false` if routing through Transit Gateway/NAT Gateway)
