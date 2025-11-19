@@ -2,7 +2,7 @@
 
 ## Overview
 
-This repository contains architecture documentation and deployment details for FortiCNAPP (formerly Lacework) Agentless Workload Scanning on AWS and Azure.
+This repository contains architecture documentation and deployment details for Lacework FortiCNAPP Agentless Workload Scanning on AWS and Azure.
 
 FortiCNAPP Agentless Workload Scanning provides vulnerability scanning for cloud workloads without requiring agents to be installed on target systems. This repository documents the architecture, deployment methods, and configuration details for both AWS and Azure environments.
 
@@ -51,6 +51,38 @@ Docs - https://docs.fortinet.com/document/forticnapp/latest/administration-guide
 - S3 Bucket for storing scan results/metadata
 - CloudWatch Log Groups for ECS task logs
 
+### Account Requirements
+
+**Single Account Deployment:**
+- All infrastructure (VPC, ECS, internet egress) is deployed in the same account where workloads are scanned
+
+**Organization Deployment:**
+
+Based on the [Terraform module examples](https://registry.terraform.io/modules/lacework/agentless-scanning/aws/latest), organization deployments require different resources in different accounts:
+
+- **Scanning Account (where infrastructure is deployed):**
+  - Requires VPC with internet egress (Internet Gateway, NAT Gateway, or Transit Gateway route) - as documented: "ECS tasks require outbound internet connectivity to Lacework APIs"
+  - Requires ECS Fargate cluster, CloudWatch Event Rules, S3 bucket, and all scanning infrastructure
+  - ECS tasks run in this account and use AWS APIs (ec2:CreateSnapshot) to create snapshots in target accounts
+  - Scan results are stored in S3 in the scanning account, and Lacework uses cross-account IAM role to retrieve them
+  - Terraform module creates resources with `global = true` and `regional = true`
+
+- **Target/Monitored Accounts (accounts being scanned):**
+  - **Do NOT require** VPC, internet egress, or scanning infrastructure
+  - Only require IAM snapshot role created with `snapshot_role = true` in the Terraform module
+  - The snapshot role allows the scanning account to assume cross-account permissions to create snapshots
+  - Snapshots are created, analyzed, and deleted within the target account's region via AWS APIs
+
+- **Management Account (AWS Organizations management account):**
+  - Only requires IAM snapshot role created with `snapshot_role = true` in the Terraform module
+  - Used to enumerate accounts and OUs in the organization for scanning
+  - **Do NOT require** VPC, internet egress, or scanning infrastructure
+
+**Evidence:** See the [multi-account-multi-region example](https://registry.terraform.io/modules/lacework/agentless-scanning/aws/latest/examples/multi-account-multi-region) in the Terraform registry, which shows:
+- `scanning_account.tf` creates global and regional resources (VPC, ECS, etc.)
+- `monitored_account.tf` only creates `snapshot_role = true` (IAM role only)
+- `management_account.tf` only creates `snapshot_role = true` (IAM role only)
+
 ### Terraform Module
 - Terraform module: https://registry.terraform.io/modules/lacework/agentless-scanning/aws/latest
 
@@ -73,6 +105,23 @@ The Terraform module provisions the following AWS resources:
 - Security Groups (can use existing or create new)
 - Internet Gateway (for outbound connectivity)
 - VPC Flow Logs (optional)
+
+**Using Existing Networking Resources:**
+
+The Terraform module supports using existing VPC, subnets, and security groups instead of creating new ones. This applies to both **single account** and **organization deployments**.
+
+**For Organization Deployments:**
+- VPC/networking configuration is **only needed in the scanning account** - specifically in the regional modules (`regional = true`)
+- Monitored accounts and management accounts **do not require** VPC/networking configuration - they only need IAM snapshot roles (`snapshot_role = true`)
+
+To use existing resources in the scanning account's regional modules, set the following module inputs:
+- `use_existing_vpc = true` and provide `vpc_id` - The existing VPC must have an Internet Gateway attached (or set `use_internet_gateway = false` if routing through Transit Gateway/NAT Gateway)
+- `use_existing_subnet = true` and provide `subnet_id` - Only a single subnet is needed
+- `use_existing_security_group = true` and provide `security_group_id`
+
+**Note:** When using an existing VPC, the module will still create a new subnet using `vpc_cidr_block` unless `use_existing_subnet = true` is also set.
+
+See the [single-account-existing-vpc-networking example](https://registry.terraform.io/modules/lacework/agentless-scanning/aws/latest/examples/single-account-existing-vpc-networking) for a complete example. The same VPC configuration options apply to the regional modules in organization deployments.
 
 **Scheduling:**
 - CloudWatch Event Rules (`aws_cloudwatch_event_rule.agentless_scan_event_rule`) - for scheduled scanning
