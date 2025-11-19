@@ -27,9 +27,11 @@ FortiCNAPP Agentless Workload Scanning provides vulnerability scanning for cloud
 
 ## Deployment Methods
 
-For deployment to AWS, both CloudFormation and Terraform are supported. Terraform is typically recommended since the terraform module is flexible to allow for existing networking resources (VPC, subnets, security groups) to be reused in the scanning account.
+### AWS Deployment Methods
+Both CloudFormation and Terraform are supported. Terraform is typically recommended since the terraform module is flexible to allow for existing networking resources (VPC, subnets, security groups) to be reused in the scanning account.
 
-For deployment to Azure, Terraform is supported.
+### Azure Deployment Methods
+Terraform is supported.
 
 ## AWS Deployment Details
 
